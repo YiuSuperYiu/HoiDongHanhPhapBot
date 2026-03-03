@@ -48,10 +48,7 @@ class AppTestCase(unittest.TestCase):
         async_client = MockAsyncClient(get_response=MockResponse(200, {"data": []}))
 
         with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
-            response = self.client.post(
-                "/api/connect",
-                json={"api_key": "sk-ant-1234567890"},
-            )
+            response = self.client.post("/api/connect", json={"api_key": "sk-ant-1234567890"})
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["connected"])
@@ -69,15 +66,34 @@ class AppTestCase(unittest.TestCase):
         )
 
         with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
-            response = self.client.post(
-                "/api/connect",
-                json={"api_key": "sk-ant-1234567890"},
-            )
+            response = self.client.post("/api/connect", json={"api_key": "sk-ant-1234567890"})
 
         self.assertEqual(response.status_code, 400)
         detail = response.json()["detail"]
         self.assertEqual(detail["code"], "insufficient_credit")
         self.assertIn("billing_url", detail)
+        self.assertIn("opened_at", detail)
+
+    def test_connect_expired_access(self):
+        payload = {
+            "type": "error",
+            "error": {
+                "type": "invalid_request_error",
+                "message": "Your API key is expired.",
+            },
+        }
+        async_client = MockAsyncClient(
+            get_response=MockResponse(401, payload=payload, text=json.dumps(payload))
+        )
+
+        with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
+            response = self.client.post("/api/connect", json={"api_key": "sk-ant-1234567890"})
+
+        self.assertEqual(response.status_code, 401)
+        detail = response.json()["detail"]
+        self.assertEqual(detail["code"], "expired_access")
+        self.assertIn("renew_url", detail)
+        self.assertIn("opened_at", detail)
 
     def test_chat_success(self):
         post_response = MockResponse(200, {"content": [{"type": "text", "text": "ok"}]})
@@ -88,6 +104,7 @@ class AppTestCase(unittest.TestCase):
                 "/api/chat",
                 json={
                     "api_key": "sk-ant-1234567890",
+                    "model": "claude-opus-4-6",
                     "messages": [{"role": "user", "content": "hello"}],
                 },
             )

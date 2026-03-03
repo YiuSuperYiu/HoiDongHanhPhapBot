@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 import httpx
@@ -20,7 +21,7 @@ class ConnectRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     api_key: str = Field(min_length=10)
-    model: str = Field(default="claude-3-5-sonnet-20241022")
+    model: str = Field(default="claude-opus-4-6")
     system_prompt: str = ""
     messages: list[Message] = Field(min_length=1)
     temperature: float = Field(default=0.7, ge=0.0, le=1.0)
@@ -32,9 +33,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
+def _now_iso_utc() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
     fallback = response.text or "Claude API lỗi."
-    detail: dict[str, Any] = {"message": fallback}
+    detail: dict[str, Any] = {"message": fallback, "opened_at": _now_iso_utc()}
 
     try:
         payload = response.json()
@@ -51,9 +56,16 @@ def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
         if "credit balance is too low" in normalized:
             detail["code"] = "insufficient_credit"
             detail["message_vi"] = (
-                "Tài khoản Claude của bạn đã hết credit. Hãy nạp thêm credit hoặc nâng cấp gói."
+                "Claude đã hết credit. Hãy nạp thêm credit hoặc nâng cấp gói để tiếp tục."
             )
             detail["billing_url"] = "https://console.anthropic.com/settings/plans"
+
+        if any(term in normalized for term in ["expired", "expire", "revoked", "deactivated"]):
+            detail["code"] = "expired_access"
+            detail["message_vi"] = (
+                "Claude/API key đã hết hạn hoặc bị thu hồi. Vui lòng tạo key mới rồi kết nối lại."
+            )
+            detail["renew_url"] = "https://console.anthropic.com/settings/keys"
 
     return detail
 

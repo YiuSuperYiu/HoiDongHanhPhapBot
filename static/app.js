@@ -5,11 +5,12 @@ const state = {
   connected: false,
   connectedApiKey: "",
   billingUrl: "https://console.anthropic.com/settings/plans",
+  renewUrl: "https://console.anthropic.com/settings/keys",
 };
 
 function loadSettings() {
   $("apiKey").value = localStorage.getItem("hopestar_api_key") || "";
-  $("model").value = localStorage.getItem("hopestar_model") || "claude-3-5-sonnet-20241022";
+  $("model").value = localStorage.getItem("hopestar_model") || "claude-opus-4-6";
   $("systemPrompt").value = localStorage.getItem("hopestar_system") || "";
   $("temperature").value = localStorage.getItem("hopestar_temp") || "0.7";
 }
@@ -37,24 +38,39 @@ function showBillingButton(show, url = "") {
   btn.classList.add("hidden");
 }
 
+function normalizeErrorMessage(error) {
+  if (!error) return "Không rõ lỗi.";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 function parseApiError(body, fallback) {
   const detail = body?.detail;
 
   if (typeof detail === "string") {
-    return { message: detail, insufficientCredit: false };
+    return { message: detail, insufficientCredit: false, expiredAccess: false, openedAt: "" };
   }
 
   if (detail && typeof detail === "object") {
     const message = detail.message_vi || detail.message || fallback;
     const insufficientCredit = detail.code === "insufficient_credit";
+    const expiredAccess = detail.code === "expired_access";
     return {
       message,
       insufficientCredit,
+      expiredAccess,
       billingUrl: detail.billing_url || "",
+      renewUrl: detail.renew_url || "",
+      openedAt: detail.opened_at || "",
     };
   }
 
-  return { message: fallback, insufficientCredit: false };
+  return { message: fallback, insufficientCredit: false, expiredAccess: false, openedAt: "" };
 }
 
 function setConnection(connected, apiKey = "") {
@@ -77,6 +93,11 @@ function renderMessages() {
     box.appendChild(div);
   }
   box.scrollTop = box.scrollHeight;
+}
+
+function composeStatus(info, prefix) {
+  const openedText = info.openedAt ? ` (thời điểm: ${info.openedAt})` : "";
+  return `${prefix}: ${info.message}${openedText}`;
 }
 
 async function connectClaudeApi() {
@@ -107,7 +128,10 @@ async function connectClaudeApi() {
       if (info.insufficientCredit) {
         showBillingButton(true, info.billingUrl);
       }
-      throw new Error(info.message);
+      if (info.expiredAccess && info.renewUrl) {
+        state.renewUrl = info.renewUrl;
+      }
+      throw new Error(composeStatus(info, "Lỗi kết nối"));
     }
 
     setConnection(true, apiKey);
@@ -115,7 +139,7 @@ async function connectClaudeApi() {
     setStatus(body.message || "Kết nối thành công.");
   } catch (error) {
     setConnection(false);
-    setStatus(`Lỗi kết nối: ${error.message}`);
+    setStatus(normalizeErrorMessage(error));
   } finally {
     btn.disabled = false;
   }
@@ -169,7 +193,7 @@ async function sendMessage() {
       if (info.insufficientCredit) {
         showBillingButton(true, info.billingUrl);
       }
-      throw new Error(info.message);
+      throw new Error(composeStatus(info, "Lỗi"));
     }
 
     showBillingButton(false);
@@ -177,14 +201,14 @@ async function sendMessage() {
     renderMessages();
     setStatus("Xong.");
   } catch (error) {
-    setStatus(`Lỗi: ${error.message}`);
+    setStatus(normalizeErrorMessage(error));
   } finally {
     btn.disabled = false;
   }
 }
 
 function openApiKeyPage() {
-  window.open("https://console.anthropic.com/settings/keys", "_blank", "noopener,noreferrer");
+  window.open(state.renewUrl, "_blank", "noopener,noreferrer");
 }
 
 function openBillingPage() {

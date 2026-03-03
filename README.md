@@ -1,12 +1,12 @@
 # HopeStar Studio Engine Core V1
 
-Đây là bản studio chat chạy local để dùng Claude API key của bạn.
+Đây là studio chat local để dùng Claude API key của bạn.
 
 ## Điểm chính
 
-- Đổi tên hệ thống thành **HopeStar Studio Engine Core V1**.
-- Bắt buộc kết nối API Claude trước khi gửi tin nhắn chat.
-- Có nút mở nhanh trang tạo/lấy API key của Anthropic.
+- Bắt buộc kết nối Claude API trước khi gửi chat.
+- Model mặc định: **Opus 4.6** (`claude-opus-4-6`).
+- Có nút mở nhanh trang API key và trang Billing.
 
 ## Chạy ứng dụng
 
@@ -19,22 +19,22 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 Mở `http://localhost:8000`.
 
-## Quy trình test thành công (đúng ý “bắt buộc kết nối API”)
+## Quy trình test nhanh
 
 1. Nhập Claude API key.
-2. Bấm **Kết nối Claude API** để xác thực key.
-3. Nếu chưa có key, bấm **Mở web lấy API key** để mở trang Anthropic keys.
-4. Khi badge hiện **Đã kết nối Claude API**, mới gửi chat được.
+2. Bấm **Kết nối Claude API**.
+3. Nếu thiếu credit, bấm **Mở trang Billing (nạp credit)**.
+4. Nếu key hết hạn, app sẽ báo rõ là hết hạn và kèm thời điểm lỗi (`opened_at`).
 
-## Test nhanh API
+## API test
 
-### Health check
+### Health
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### Test kết nối key
+### Kết nối key
 
 ```bash
 curl -X POST http://localhost:8000/api/connect \
@@ -42,14 +42,14 @@ curl -X POST http://localhost:8000/api/connect \
   -d '{"api_key":"sk-ant-..."}'
 ```
 
-### Test chat
+### Chat
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "api_key":"sk-ant-...",
-    "model":"claude-3-5-sonnet-20241022",
+    "model":"claude-opus-4-6",
     "system_prompt":"Bạn là trợ lý hữu ích",
     "messages":[{"role":"user","content":"Xin chào"}],
     "temperature":0.7,
@@ -60,15 +60,3 @@ curl -X POST http://localhost:8000/api/chat \
 ## Biến môi trường
 
 - `ANTHROPIC_BASE_URL` (mặc định `https://api.anthropic.com`).
-
-
-## Xử lý lỗi credit thấp từ Claude
-
-Nếu bạn gặp lỗi dạng:
-
-```
-Your credit balance is too low to access the Anthropic API
-```
-
-Ứng dụng sẽ hiện thông báo tiếng Việt và bật nút **Mở trang Billing (nạp credit)** để mở nhanh trang thanh toán/nạp credit của Anthropic.
-
