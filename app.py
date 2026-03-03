@@ -1,5 +1,5 @@
 import os
-from typing import List, Literal
+from typing import Literal
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -18,9 +18,9 @@ class ChatRequest(BaseModel):
     api_key: str = Field(min_length=10)
     model: str = Field(default="claude-3-5-sonnet-20241022")
     system_prompt: str = ""
-    messages: List[Message]
-    max_tokens: int = Field(default=1000, ge=64, le=4096)
+    messages: list[Message] = Field(min_length=1)
     temperature: float = Field(default=0.7, ge=0.0, le=1.0)
+    max_tokens: int = Field(default=1024, ge=64, le=4096)
 
 
 app = FastAPI(title="RoPilot Studio")
@@ -33,22 +33,25 @@ async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.get("/health")
+async def health():
+    return {"ok": True}
+
+
 @app.post("/api/chat")
 async def chat(payload: ChatRequest):
-    base_url = os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
-    endpoint = f"{base_url.rstrip('/')}/v1/messages"
-
-    anthropic_messages = [
-        {"role": m.role, "content": [{"type": "text", "text": m.content}]}
-        for m in payload.messages
-    ]
+    endpoint = f"{os.getenv('ANTHROPIC_BASE_URL', 'https://api.anthropic.com').rstrip('/')}/v1/messages"
 
     body = {
         "model": payload.model,
+        "messages": [
+            {"role": msg.role, "content": [{"type": "text", "text": msg.content}]}
+            for msg in payload.messages
+        ],
         "max_tokens": payload.max_tokens,
         "temperature": payload.temperature,
-        "messages": anthropic_messages,
     }
+
     if payload.system_prompt.strip():
         body["system"] = payload.system_prompt
 
@@ -62,17 +65,14 @@ async def chat(payload: ChatRequest):
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(endpoint, headers=headers, json=body)
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=f"Lỗi kết nối đến Claude API: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Không thể kết nối Claude API: {exc}") from exc
 
     if response.status_code >= 400:
-        detail = response.text
-        raise HTTPException(status_code=response.status_code, detail=detail)
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
     data = response.json()
-    text_parts = [
-        part.get("text", "")
-        for part in data.get("content", [])
-        if part.get("type") == "text"
-    ]
+    reply = "\n".join(
+        part.get("text", "") for part in data.get("content", []) if part.get("type") == "text"
+    ).strip()
 
-    return {"reply": "\n".join(text_parts).strip(), "raw": data}
+    return {"reply": reply, "raw": data}

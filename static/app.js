@@ -1,91 +1,97 @@
-const apiKeyInput = document.getElementById('apiKey');
-const modelInput = document.getElementById('model');
-const temperatureInput = document.getElementById('temperature');
-const systemPromptInput = document.getElementById('systemPrompt');
-const userInput = document.getElementById('userInput');
-const sendBtn = document.getElementById('sendBtn');
-const chatBox = document.getElementById('chatBox');
-const statusEl = document.getElementById('status');
+const $ = (id) => document.getElementById(id);
 
-const conversation = [];
+const state = {
+  messages: [],
+};
 
-apiKeyInput.value = localStorage.getItem('ropilot_api_key') || '';
-modelInput.value = localStorage.getItem('ropilot_model') || modelInput.value;
-systemPromptInput.value = localStorage.getItem('ropilot_system_prompt') || '';
-
-setupPersistence();
-
-function setupPersistence() {
-  apiKeyInput.addEventListener('change', () => {
-    localStorage.setItem('ropilot_api_key', apiKeyInput.value.trim());
-  });
-  modelInput.addEventListener('change', () => {
-    localStorage.setItem('ropilot_model', modelInput.value.trim());
-  });
-  systemPromptInput.addEventListener('change', () => {
-    localStorage.setItem('ropilot_system_prompt', systemPromptInput.value);
-  });
+function loadSettings() {
+  $("apiKey").value = localStorage.getItem("ropilot_api_key") || "";
+  $("model").value = localStorage.getItem("ropilot_model") || "claude-3-5-sonnet-20241022";
+  $("systemPrompt").value = localStorage.getItem("ropilot_system") || "";
+  $("temperature").value = localStorage.getItem("ropilot_temp") || "0.7";
 }
 
-function renderMessage(role, content) {
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.textContent = content;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+function saveSettings() {
+  localStorage.setItem("ropilot_api_key", $("apiKey").value.trim());
+  localStorage.setItem("ropilot_model", $("model").value.trim());
+  localStorage.setItem("ropilot_system", $("systemPrompt").value);
+  localStorage.setItem("ropilot_temp", $("temperature").value);
+}
+
+function setStatus(text) {
+  $("status").textContent = text;
+}
+
+function renderMessages() {
+  const box = $("messages");
+  box.innerHTML = "";
+  for (const item of state.messages) {
+    const div = document.createElement("div");
+    div.className = `msg ${item.role}`;
+    div.textContent = item.content;
+    box.appendChild(div);
+  }
+  box.scrollTop = box.scrollHeight;
 }
 
 async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    statusEl.textContent = 'Vui lòng nhập Claude API key trước.';
+  saveSettings();
+
+  const apiKey = $("apiKey").value.trim();
+  const model = $("model").value.trim();
+  const systemPrompt = $("systemPrompt").value;
+  const temperature = Number($("temperature").value);
+  const prompt = $("prompt").value.trim();
+
+  if (!apiKey || !prompt) {
+    setStatus("Thiếu API key hoặc nội dung tin nhắn.");
     return;
   }
 
-  const model = modelInput.value.trim();
-  const systemPrompt = systemPromptInput.value;
-  const temperature = Number(temperatureInput.value || '0.7');
+  state.messages.push({ role: "user", content: prompt });
+  $("prompt").value = "";
+  renderMessages();
 
-  conversation.push({ role: 'user', content: text });
-  renderMessage('user', text);
-  userInput.value = '';
-  statusEl.textContent = 'Đang gọi Claude...';
-  sendBtn.disabled = true;
+  const btn = $("sendBtn");
+  btn.disabled = true;
+  setStatus("Đang gọi Claude...");
 
   try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: apiKey,
         model,
         system_prompt: systemPrompt,
         temperature,
-        messages: conversation
-      })
+        max_tokens: 1024,
+        messages: state.messages,
+      }),
     });
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || JSON.stringify(data));
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.detail || "Claude API lỗi");
     }
 
-    const reply = data.reply || '(Không có nội dung trả lời)';
-    conversation.push({ role: 'assistant', content: reply });
-    renderMessage('assistant', reply);
-    statusEl.textContent = 'Xong.';
-  } catch (err) {
-    statusEl.textContent = `Lỗi: ${err.message}`;
+    state.messages.push({ role: "assistant", content: body.reply || "(không có nội dung)" });
+    renderMessages();
+    setStatus("Xong.");
+  } catch (error) {
+    setStatus(`Lỗi: ${error.message}`);
   } finally {
-    sendBtn.disabled = false;
+    btn.disabled = false;
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
-userInput.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    sendMessage();
-  }
+window.addEventListener("DOMContentLoaded", () => {
+  loadSettings();
+  $("sendBtn").addEventListener("click", sendMessage);
+  $("prompt").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      sendMessage();
+    }
+  });
 });

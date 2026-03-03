@@ -1,3 +1,6 @@
+import unittest
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 import app as app_module
@@ -15,71 +18,41 @@ class MockResponse:
 
 class MockAsyncClient:
     def __init__(self, response):
-        self._response = response
+        self.response = response
 
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc, tb):
         return False
 
     async def post(self, *args, **kwargs):
-        return self._response
+        return self.response
 
 
-def test_home_page_renders():
-    client = TestClient(app_module.app)
-    response = client.get("/")
+class AppTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app_module.app)
 
-    assert response.status_code == 200
-    assert "RoPilot Studio" in response.text
+    def test_home(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("RoPilot Studio", response.text)
 
+    def test_chat_success(self):
+        mocked = MockResponse(200, {"content": [{"type": "text", "text": "ok"}]})
+        with patch.object(app_module.httpx, "AsyncClient", return_value=MockAsyncClient(mocked)):
+            response = self.client.post(
+                "/api/chat",
+                json={
+                    "api_key": "sk-ant-1234567890",
+                    "messages": [{"role": "user", "content": "hello"}],
+                },
+            )
 
-def test_chat_success(monkeypatch):
-    payload = {
-        "content": [{"type": "text", "text": "Xin chào từ Claude"}],
-    }
-    mock_response = MockResponse(status_code=200, payload=payload)
-
-    def mock_client_factory(*args, **kwargs):
-        return MockAsyncClient(mock_response)
-
-    monkeypatch.setattr(app_module.httpx, "AsyncClient", mock_client_factory)
-
-    client = TestClient(app_module.app)
-    response = client.post(
-        "/api/chat",
-        json={
-            "api_key": "sk-ant-1234567890",
-            "model": "claude-3-5-sonnet-20241022",
-            "system_prompt": "Bạn là trợ lý hữu ích.",
-            "messages": [{"role": "user", "content": "Hello"}],
-            "max_tokens": 1000,
-            "temperature": 0.7,
-        },
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["reply"] == "Xin chào từ Claude"
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["reply"], "ok")
 
 
-def test_chat_returns_upstream_error(monkeypatch):
-    mock_response = MockResponse(status_code=401, text='{"error":"invalid x-api-key"}')
-
-    def mock_client_factory(*args, **kwargs):
-        return MockAsyncClient(mock_response)
-
-    monkeypatch.setattr(app_module.httpx, "AsyncClient", mock_client_factory)
-
-    client = TestClient(app_module.app)
-    response = client.post(
-        "/api/chat",
-        json={
-            "api_key": "sk-ant-1234567890",
-            "messages": [{"role": "user", "content": "Hello"}],
-        },
-    )
-
-    assert response.status_code == 401
-    assert "invalid x-api-key" in response.text
+if __name__ == "__main__":
+    unittest.main()

@@ -1,13 +1,8 @@
-# RoPilot Studio (Claude API)
+# RoPilot Studio (làm lại từ đầu)
 
-RoPilot Studio là một giao diện chat đơn giản để bạn dùng API Claude của riêng mình.
+Dự án này là bản chat studio tối giản để gọi Claude API bằng key của bạn.
 
-## Tính năng
-- Chat giao diện web tiếng Việt.
-- Lưu API key cục bộ trong trình duyệt (`localStorage`).
-- Backend proxy để gọi Claude Messages API an toàn hơn (không expose key trong source code).
-
-## Chạy nhanh
+## Chạy ứng dụng
 
 ```bash
 python3 -m venv .venv
@@ -18,39 +13,42 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 Mở `http://localhost:8000`.
 
-## Test như thế nào?
+## Cách test nhanh
 
-### 1) Test tự động (không cần API key thật)
-
-Sau khi cài dependencies, chạy:
+### 1) Health check backend
 
 ```bash
-pytest -q
+curl http://localhost:8000/health
 ```
 
-Các test hiện có:
-- Render được trang `/`.
-- Endpoint `/api/chat` trả lời đúng khi Claude API trả về thành công (mock).
-- Endpoint `/api/chat` trả lỗi đúng khi upstream trả lỗi (mock).
+Kỳ vọng: `{"ok":true}`.
 
-### 2) Test manual end-to-end với API key của bạn
+### 2) Test giao diện
 
-Chạy server:
+- Nhập API key Claude.
+- Nhập prompt.
+- Bấm **Gửi** (hoặc Ctrl+Enter).
+
+### 3) Test endpoint chat bằng curl
 
 ```bash
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key":"sk-ant-...",
+    "model":"claude-3-5-sonnet-20241022",
+    "system_prompt":"Bạn là trợ lý hữu ích",
+    "messages":[{"role":"user","content":"Xin chào"}],
+    "temperature":0.7,
+    "max_tokens":200
+  }'
 ```
 
-Mở `http://localhost:8000`, nhập:
-- API Key Claude
-- Model (ví dụ: `claude-3-5-sonnet-20241022`)
-- Prompt rồi bấm **Gửi**
+## Biến môi trường
 
-Nếu đúng, bạn sẽ thấy phản hồi của assistant trong khung chat.
+- `ANTHROPIC_BASE_URL` (mặc định `https://api.anthropic.com`).
 
-## Biến môi trường (tuỳ chọn)
-- `ANTHROPIC_BASE_URL` (mặc định: `https://api.anthropic.com`)
+## Bảo mật
 
-## Ghi chú bảo mật
-- API key được nhập từ UI, gửi lên backend theo từng request.
-- Không lưu key ở server; frontend lưu cục bộ trên máy bạn.
+- API key chỉ gửi theo từng request.
+- Key được lưu localStorage trên máy local của bạn.
