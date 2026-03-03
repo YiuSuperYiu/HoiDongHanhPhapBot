@@ -1,12 +1,15 @@
 # HopeStar Studio Engine Core V1
 
-Đây là studio chat local để dùng Claude API key của bạn.
+Studio chat local để gọi Claude theo 2 cách:
+
+1. **Liên kết Claude account trả phí qua OAuth token** (kiểu bạn gửi).
+2. **Dùng API key** truyền thống.
 
 ## Điểm chính
 
-- Bắt buộc kết nối Claude API trước khi gửi chat.
+- Bắt buộc kết nối trước khi gửi chat.
 - Model mặc định: **Opus 4.6** (`claude-opus-4-6`).
-- Có nút mở nhanh trang API key và trang Billing.
+- Có nút mở nhanh trang OAuth Claude account, API key và Billing.
 
 ## Chạy ứng dụng
 
@@ -19,19 +22,15 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 Mở `http://localhost:8000`.
 
+## Liên kết Claude account trả phí kiểu OAuth
 
-## Claude subscription vs Claude API (quan trọng)
+- Chọn **Kiểu kết nối = Claude account OAuth token**.
+- Bấm **Mở trang OAuth Claude account** (app sẽ mở URL OAuth authorize).
+- Đăng nhập/Authorize như ảnh bạn gửi.
+- Lấy token rồi dán vào ô **OAuth Access Token**.
+- Bấm **Kết nối Claude** rồi chat.
 
-- Gói Claude subscription (Pro/Max) cho app/chat web **không tự cấp API credit**.
-- Để app này chạy được, bạn vẫn cần API key + API credits trong Anthropic Billing.
-- Nếu gặp lỗi credit thấp, hãy nạp credits ở trang Billing rồi kết nối lại.
-
-## Quy trình test nhanh
-
-1. Nhập Claude API key.
-2. Bấm **Kết nối Claude API**.
-3. Nếu thiếu credit, bấm **Mở trang Billing (nạp credit)**.
-4. Nếu key hết hạn, app sẽ báo rõ là hết hạn và kèm thời điểm lỗi (`opened_at`).
+> Có thể cấu hình URL OAuth bằng biến môi trường `CLAUDE_ACCOUNT_OAUTH_URL`.
 
 ## API test
 
@@ -41,7 +40,21 @@ Mở `http://localhost:8000`.
 curl http://localhost:8000/health
 ```
 
-### Kết nối key
+### OAuth URL
+
+```bash
+curl http://localhost:8000/api/oauth/url
+```
+
+### Kết nối (OAuth token)
+
+```bash
+curl -X POST http://localhost:8000/api/connect \
+  -H "Content-Type: application/json" \
+  -d '{"oauth_token":"your_oauth_access_token"}'
+```
+
+### Kết nối (API key)
 
 ```bash
 curl -X POST http://localhost:8000/api/connect \
@@ -55,7 +68,7 @@ curl -X POST http://localhost:8000/api/connect \
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "api_key":"sk-ant-...",
+    "oauth_token":"your_oauth_access_token",
     "model":"claude-opus-4-6",
     "system_prompt":"Bạn là trợ lý hữu ích",
     "messages":[{"role":"user","content":"Xin chào"}],
@@ -67,3 +80,4 @@ curl -X POST http://localhost:8000/api/chat \
 ## Biến môi trường
 
 - `ANTHROPIC_BASE_URL` (mặc định `https://api.anthropic.com`).
+- `CLAUDE_ACCOUNT_OAUTH_URL` (URL authorize OAuth account Claude).

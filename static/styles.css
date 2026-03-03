@@ -37,6 +37,7 @@ body {
 
 .settings input,
 .settings textarea,
+.settings select,
 .composer textarea {
   width: 100%;
   margin: 8px 0 12px;

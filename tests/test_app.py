@@ -44,7 +44,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("HopeStar Studio Engine Core V1", response.text)
 
-    def test_connect_success(self):
+    def test_oauth_url(self):
+        response = self.client.get("/api/oauth/url")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("claude.ai/oauth/authorize", response.json()["oauth_url"])
+
+    def test_connect_success_api_key(self):
         async_client = MockAsyncClient(get_response=MockResponse(200, {"data": []}))
 
         with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
@@ -52,6 +57,15 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["connected"])
+
+    def test_connect_success_oauth_token(self):
+        async_client = MockAsyncClient(get_response=MockResponse(200, {"data": []}))
+
+        with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
+            response = self.client.post("/api/connect", json={"oauth_token": "oauth-token-abc"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["auth_mode"], "oauth_token")
 
     def test_connect_insufficient_credit(self):
         payload = {

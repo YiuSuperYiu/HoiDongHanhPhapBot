@@ -10,14 +10,28 @@
     <main class="layout">
       <section class="panel settings">
         <h1>HopeStar Studio Engine Core V1</h1>
-        <p class="subtitle">Bắt buộc kết nối Claude API trước khi chat (Claude subscription không thay cho API credit).</p>
+        <p class="subtitle">Hỗ trợ liên kết Claude account trả phí qua OAuth hoặc dùng API key.</p>
 
-        <label>Claude API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        <label>Kiểu kết nối</label>
+        <select id="authMode">
+          <option value="oauth_token">Claude account OAuth token</option>
+          <option value="api_key">Claude API key</option>
+        </select>
+
+        <div id="oauthTokenWrap">
+          <label>OAuth Access Token</label>
+          <input id="oauthToken" type="password" placeholder="paste oauth access token..." />
+        </div>
+
+        <div id="apiKeyWrap" class="hidden">
+          <label>Claude API Key</label>
+          <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        </div>
 
         <div class="actions">
-          <button id="connectBtn" class="secondary">Kết nối Claude API</button>
-          <button id="openApiPageBtn" class="ghost">Mở web lấy API key</button>
+          <button id="connectBtn" class="secondary">Kết nối Claude</button>
+          <button id="openOAuthBtn" class="ghost">Mở trang OAuth Claude account</button>
+          <button id="openApiPageBtn" class="ghost">Mở trang API key</button>
           <button id="openBillingPageBtn" class="warning hidden">Mở trang Billing (nạp credit)</button>
         </div>
 
