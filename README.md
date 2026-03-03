@@ -60,3 +60,15 @@ curl -X POST http://localhost:8000/api/chat \
 ## Biến môi trường
 
 - `ANTHROPIC_BASE_URL` (mặc định `https://api.anthropic.com`).
+
+
+## Xử lý lỗi credit thấp từ Claude
+
+Nếu bạn gặp lỗi dạng:
+
+```
+Your credit balance is too low to access the Anthropic API
+```
+
+Ứng dụng sẽ hiện thông báo tiếng Việt và bật nút **Mở trang Billing (nạp credit)** để mở nhanh trang thanh toán/nạp credit của Anthropic.
+

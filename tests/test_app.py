@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch
 
@@ -54,6 +55,29 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["connected"])
+
+    def test_connect_insufficient_credit(self):
+        payload = {
+            "type": "error",
+            "error": {
+                "type": "invalid_request_error",
+                "message": "Your credit balance is too low to access the Anthropic API.",
+            },
+        }
+        async_client = MockAsyncClient(
+            get_response=MockResponse(400, payload=payload, text=json.dumps(payload))
+        )
+
+        with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
+            response = self.client.post(
+                "/api/connect",
+                json={"api_key": "sk-ant-1234567890"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        detail = response.json()["detail"]
+        self.assertEqual(detail["code"], "insufficient_credit")
+        self.assertIn("billing_url", detail)
 
     def test_chat_success(self):
         post_response = MockResponse(200, {"content": [{"type": "text", "text": "ok"}]})

@@ -4,6 +4,7 @@ const state = {
   messages: [],
   connected: false,
   connectedApiKey: "",
+  billingUrl: "https://console.anthropic.com/settings/plans",
 };
 
 function loadSettings() {
@@ -22,6 +23,38 @@ function saveSettings() {
 
 function setStatus(text) {
   $("status").textContent = text;
+}
+
+function showBillingButton(show, url = "") {
+  const btn = $("openBillingPageBtn");
+  if (show) {
+    if (url) {
+      state.billingUrl = url;
+    }
+    btn.classList.remove("hidden");
+    return;
+  }
+  btn.classList.add("hidden");
+}
+
+function parseApiError(body, fallback) {
+  const detail = body?.detail;
+
+  if (typeof detail === "string") {
+    return { message: detail, insufficientCredit: false };
+  }
+
+  if (detail && typeof detail === "object") {
+    const message = detail.message_vi || detail.message || fallback;
+    const insufficientCredit = detail.code === "insufficient_credit";
+    return {
+      message,
+      insufficientCredit,
+      billingUrl: detail.billing_url || "",
+    };
+  }
+
+  return { message: fallback, insufficientCredit: false };
 }
 
 function setConnection(connected, apiKey = "") {
@@ -53,6 +86,7 @@ async function connectClaudeApi() {
   if (!apiKey) {
     setStatus("Bạn chưa nhập API key. Nhấn 'Mở web lấy API key' để tạo key.");
     setConnection(false);
+    showBillingButton(false);
     return;
   }
 
@@ -69,10 +103,15 @@ async function connectClaudeApi() {
 
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.detail || "Không kết nối được Claude API.");
+      const info = parseApiError(body, "Không kết nối được Claude API.");
+      if (info.insufficientCredit) {
+        showBillingButton(true, info.billingUrl);
+      }
+      throw new Error(info.message);
     }
 
     setConnection(true, apiKey);
+    showBillingButton(false);
     setStatus(body.message || "Kết nối thành công.");
   } catch (error) {
     setConnection(false);
@@ -126,9 +165,14 @@ async function sendMessage() {
 
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.detail || "Claude API lỗi.");
+      const info = parseApiError(body, "Claude API lỗi.");
+      if (info.insufficientCredit) {
+        showBillingButton(true, info.billingUrl);
+      }
+      throw new Error(info.message);
     }
 
+    showBillingButton(false);
     state.messages.push({ role: "assistant", content: body.reply || "(không có nội dung)" });
     renderMessages();
     setStatus("Xong.");
@@ -143,12 +187,18 @@ function openApiKeyPage() {
   window.open("https://console.anthropic.com/settings/keys", "_blank", "noopener,noreferrer");
 }
 
+function openBillingPage() {
+  window.open(state.billingUrl, "_blank", "noopener,noreferrer");
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   loadSettings();
   setConnection(false);
+  showBillingButton(false);
 
   $("connectBtn").addEventListener("click", connectClaudeApi);
   $("openApiPageBtn").addEventListener("click", openApiKeyPage);
+  $("openBillingPageBtn").addEventListener("click", openBillingPage);
   $("sendBtn").addEventListener("click", sendMessage);
 
   $("apiKey").addEventListener("input", () => {

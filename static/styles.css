@@ -113,3 +113,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
 }
+
+button.warning { background: #b45309; }
+.hidden { display: none; }

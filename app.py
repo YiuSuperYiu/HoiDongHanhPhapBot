@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -32,6 +32,32 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
+def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
+    fallback = response.text or "Claude API lỗi."
+    detail: dict[str, Any] = {"message": fallback}
+
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = None
+
+    if isinstance(payload, dict):
+        error_data = payload.get("error", {}) if isinstance(payload.get("error"), dict) else {}
+        message = error_data.get("message") or payload.get("message") or fallback
+        detail["message"] = message
+        detail["upstream"] = payload
+
+        normalized = message.lower()
+        if "credit balance is too low" in normalized:
+            detail["code"] = "insufficient_credit"
+            detail["message_vi"] = (
+                "Tài khoản Claude của bạn đã hết credit. Hãy nạp thêm credit hoặc nâng cấp gói."
+            )
+            detail["billing_url"] = "https://console.anthropic.com/settings/plans"
+
+    return detail
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -57,7 +83,7 @@ async def connect_claude(payload: ConnectRequest):
         raise HTTPException(status_code=502, detail=f"Không thể kết nối Claude API: {exc}") from exc
 
     if response.status_code >= 400:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+        raise HTTPException(status_code=response.status_code, detail=_build_upstream_error(response))
 
     return {"connected": True, "message": "Kết nối Claude API thành công."}
 
@@ -92,7 +118,7 @@ async def chat(payload: ChatRequest):
         raise HTTPException(status_code=502, detail=f"Không thể kết nối Claude API: {exc}") from exc
 
     if response.status_code >= 400:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+        raise HTTPException(status_code=response.status_code, detail=_build_upstream_error(response))
 
     data = response.json()
     reply = "\n".join(
