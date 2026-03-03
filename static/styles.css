@@ -1,0 +1,119 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --text: #e7ecf3;
+  --muted: #a0a8b5;
+  --border: #2c3342;
+  --user: #275efe;
+  --assistant: #243041;
+  --ok: #16a34a;
+  --warn: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.layout {
+  max-width: 1150px;
+  margin: 20px auto;
+  padding: 0 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 360px 1fr;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.settings input,
+.settings textarea,
+.settings select,
+.composer textarea {
+  width: 100%;
+  margin: 8px 0 12px;
+  border: 1px solid var(--border);
+  background: #0f131b;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.subtitle { color: var(--muted); margin-top: -6px; }
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.badge {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.badge.online { background: rgba(22, 163, 74, 0.2); color: #86efac; }
+.badge.offline { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+.chat {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  min-height: 70vh;
+}
+
+.messages {
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.msg {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.msg.user { background: var(--user); }
+.msg.assistant { background: var(--assistant); }
+
+.composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: white;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+button.secondary { background: #0ea5e9; }
+button.ghost { background: #374151; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.status { color: var(--muted); min-height: 20px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+button.warning { background: #b45309; }
+.hidden { display: none; }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HopeStar Studio Engine Core V1</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel settings">
+        <h1>HopeStar Studio Engine Core V1</h1>
+        <p class="subtitle">Hỗ trợ liên kết Claude account trả phí qua OAuth hoặc dùng API key.</p>
+
+        <label>Kiểu kết nối</label>
+        <select id="authMode">
+          <option value="oauth_token">Claude account OAuth token</option>
+          <option value="api_key">Claude API key</option>
+        </select>
+
+        <div id="oauthTokenWrap">
+          <label>OAuth Access Token</label>
+          <input id="oauthToken" type="password" placeholder="paste oauth access token..." />
+        </div>
+
+        <div id="apiKeyWrap" class="hidden">
+          <label>Claude API Key</label>
+          <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        </div>
+
+        <div class="actions">
+          <button id="connectBtn" class="secondary">Kết nối Claude</button>
+          <button id="openOAuthBtn" class="ghost">Mở trang OAuth Claude account</button>
+          <button id="openApiPageBtn" class="ghost">Mở trang API key</button>
+          <button id="openBillingPageBtn" class="warning hidden">Mở trang Billing (nạp credit)</button>
+        </div>
+
+        <div id="connectionBadge" class="badge offline">Chưa kết nối</div>
+
+        <label>Model (mặc định Opus 4.6)</label>
+        <input id="model" type="text" value="claude-opus-4-6" />
+
+        <label>System Prompt</label>
+        <textarea id="systemPrompt" rows="4" placeholder="Bạn là trợ lý hữu ích..."></textarea>
+
+        <label>Temperature</label>
+        <input id="temperature" type="number" min="0" max="1" step="0.1" value="0.7" />
+      </section>
+
+      <section class="panel chat">
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <textarea id="prompt" rows="3" placeholder="Nhập nội dung... (Ctrl+Enter để gửi)"></textarea>
+          <button id="sendBtn">Gửi</button>
+        </div>
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
