@@ -83,7 +83,10 @@ function parseApiError(body, fallback) {
   }
 
   if (detail && typeof detail === "object") {
-    const message = toText(detail.message_vi || detail.message, fallback);
+    let message = toText(detail.message_vi || detail.message, fallback);
+    if (detail.code === "insufficient_credit") {
+      message += " (Lưu ý: Claude subscription không thay cho API credits.)";
+    }
     const insufficientCredit = detail.code === "insufficient_credit";
     const expiredAccess = detail.code === "expired_access";
     return {

@@ -19,6 +19,13 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 Mở `http://localhost:8000`.
 
+
+## Claude subscription vs Claude API (quan trọng)
+
+- Gói Claude subscription (Pro/Max) cho app/chat web **không tự cấp API credit**.
+- Để app này chạy được, bạn vẫn cần API key + API credits trong Anthropic Billing.
+- Nếu gặp lỗi credit thấp, hãy nạp credits ở trang Billing rồi kết nối lại.
+
 ## Quy trình test nhanh
 
 1. Nhập Claude API key.

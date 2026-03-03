@@ -69,7 +69,7 @@ def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
         if "credit balance is too low" in normalized:
             detail["code"] = "insufficient_credit"
             detail["message_vi"] = (
-                "Claude đã hết credit. Hãy nạp thêm credit hoặc nâng cấp gói để tiếp tục."
+                "Tài khoản Claude subscription (Pro/Max) không tự dùng được cho API. Bạn cần nạp API credits trong Billing để tiếp tục."
             )
             detail["billing_url"] = "https://console.anthropic.com/settings/plans"
 
