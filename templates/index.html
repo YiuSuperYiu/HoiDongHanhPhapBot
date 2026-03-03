@@ -3,17 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RoPilot Studio</title>
+    <title>HopeStar Studio Engine Core V1</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="layout">
       <section class="panel settings">
-        <h1>RoPilot Studio</h1>
-        <p class="subtitle">Chat với Claude bằng API key của bạn.</p>
+        <h1>HopeStar Studio Engine Core V1</h1>
+        <p class="subtitle">Bắt buộc kết nối Claude API trước khi chat.</p>
 
         <label>Claude API Key</label>
         <input id="apiKey" type="password" placeholder="sk-ant-..." />
+
+        <div class="actions">
+          <button id="connectBtn" class="secondary">Kết nối Claude API</button>
+          <button id="openApiPageBtn" class="ghost">Mở web lấy API key</button>
+        </div>
+
+        <div id="connectionBadge" class="badge offline">Chưa kết nối</div>
 
         <label>Model</label>
         <input id="model" type="text" value="claude-3-5-sonnet-20241022" />

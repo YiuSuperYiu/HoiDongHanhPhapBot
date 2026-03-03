@@ -14,6 +14,10 @@ class Message(BaseModel):
     content: str = Field(min_length=1)
 
 
+class ConnectRequest(BaseModel):
+    api_key: str = Field(min_length=10)
+
+
 class ChatRequest(BaseModel):
     api_key: str = Field(min_length=10)
     model: str = Field(default="claude-3-5-sonnet-20241022")
@@ -23,7 +27,7 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(default=1024, ge=64, le=4096)
 
 
-app = FastAPI(title="RoPilot Studio")
+app = FastAPI(title="HopeStar Studio Engine Core V1")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -35,7 +39,27 @@ async def home(request: Request):
 
 @app.get("/health")
 async def health():
-    return {"ok": True}
+    return {"ok": True, "service": "HopeStar Studio Engine Core V1"}
+
+
+@app.post("/api/connect")
+async def connect_claude(payload: ConnectRequest):
+    endpoint = f"{os.getenv('ANTHROPIC_BASE_URL', 'https://api.anthropic.com').rstrip('/')}/v1/models"
+    headers = {
+        "x-api-key": payload.api_key,
+        "anthropic-version": "2023-06-01",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(endpoint, headers=headers)
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Không thể kết nối Claude API: {exc}") from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+
+    return {"connected": True, "message": "Kết nối Claude API thành công."}
 
 
 @app.post("/api/chat")

@@ -1,6 +1,12 @@
-# RoPilot Studio (làm lại từ đầu)
+# HopeStar Studio Engine Core V1
 
-Dự án này là bản chat studio tối giản để gọi Claude API bằng key của bạn.
+Đây là bản studio chat chạy local để dùng Claude API key của bạn.
+
+## Điểm chính
+
+- Đổi tên hệ thống thành **HopeStar Studio Engine Core V1**.
+- Bắt buộc kết nối API Claude trước khi gửi tin nhắn chat.
+- Có nút mở nhanh trang tạo/lấy API key của Anthropic.
 
 ## Chạy ứng dụng
 
@@ -13,23 +19,30 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 Mở `http://localhost:8000`.
 
-## Cách test nhanh
+## Quy trình test thành công (đúng ý “bắt buộc kết nối API”)
 
-### 1) Health check backend
+1. Nhập Claude API key.
+2. Bấm **Kết nối Claude API** để xác thực key.
+3. Nếu chưa có key, bấm **Mở web lấy API key** để mở trang Anthropic keys.
+4. Khi badge hiện **Đã kết nối Claude API**, mới gửi chat được.
+
+## Test nhanh API
+
+### Health check
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Kỳ vọng: `{"ok":true}`.
+### Test kết nối key
 
-### 2) Test giao diện
+```bash
+curl -X POST http://localhost:8000/api/connect \
+  -H "Content-Type: application/json" \
+  -d '{"api_key":"sk-ant-..."}'
+```
 
-- Nhập API key Claude.
-- Nhập prompt.
-- Bấm **Gửi** (hoặc Ctrl+Enter).
-
-### 3) Test endpoint chat bằng curl
+### Test chat
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
@@ -47,8 +60,3 @@ curl -X POST http://localhost:8000/api/chat \
 ## Biến môi trường
 
 - `ANTHROPIC_BASE_URL` (mặc định `https://api.anthropic.com`).
-
-## Bảo mật
-
-- API key chỉ gửi theo từng request.
-- Key được lưu localStorage trên máy local của bạn.

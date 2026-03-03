@@ -17,8 +17,9 @@ class MockResponse:
 
 
 class MockAsyncClient:
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, get_response=None, post_response=None):
+        self.get_response = get_response or MockResponse()
+        self.post_response = post_response or MockResponse()
 
     async def __aenter__(self):
         return self
@@ -26,8 +27,11 @@ class MockAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
+    async def get(self, *args, **kwargs):
+        return self.get_response
+
     async def post(self, *args, **kwargs):
-        return self.response
+        return self.post_response
 
 
 class AppTestCase(unittest.TestCase):
@@ -37,11 +41,25 @@ class AppTestCase(unittest.TestCase):
     def test_home(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("RoPilot Studio", response.text)
+        self.assertIn("HopeStar Studio Engine Core V1", response.text)
+
+    def test_connect_success(self):
+        async_client = MockAsyncClient(get_response=MockResponse(200, {"data": []}))
+
+        with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
+            response = self.client.post(
+                "/api/connect",
+                json={"api_key": "sk-ant-1234567890"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["connected"])
 
     def test_chat_success(self):
-        mocked = MockResponse(200, {"content": [{"type": "text", "text": "ok"}]})
-        with patch.object(app_module.httpx, "AsyncClient", return_value=MockAsyncClient(mocked)):
+        post_response = MockResponse(200, {"content": [{"type": "text", "text": "ok"}]})
+        async_client = MockAsyncClient(post_response=post_response)
+
+        with patch.object(app_module.httpx, "AsyncClient", return_value=async_client):
             response = self.client.post(
                 "/api/chat",
                 json={
