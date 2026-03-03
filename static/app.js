@@ -38,15 +38,32 @@ function showBillingButton(show, url = "") {
   btn.classList.add("hidden");
 }
 
+function toText(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 function normalizeErrorMessage(error) {
   if (!error) return "Không rõ lỗi.";
   if (typeof error === "string") return error;
   if (error instanceof Error) return error.message;
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
+  return toText(error, "Không rõ lỗi.");
+}
+
+function parseValidationDetail(detail) {
+  if (!Array.isArray(detail) || detail.length === 0) {
+    return "Dữ liệu gửi lên chưa hợp lệ.";
   }
+
+  const first = detail[0];
+  const fieldPath = Array.isArray(first.loc) ? first.loc.join(".") : "request";
+  const reason = toText(first.msg, "invalid input");
+  return `Dữ liệu không hợp lệ tại '${fieldPath}': ${reason}`;
 }
 
 function parseApiError(body, fallback) {
@@ -56,8 +73,17 @@ function parseApiError(body, fallback) {
     return { message: detail, insufficientCredit: false, expiredAccess: false, openedAt: "" };
   }
 
+  if (Array.isArray(detail)) {
+    return {
+      message: parseValidationDetail(detail),
+      insufficientCredit: false,
+      expiredAccess: false,
+      openedAt: "",
+    };
+  }
+
   if (detail && typeof detail === "object") {
-    const message = detail.message_vi || detail.message || fallback;
+    const message = toText(detail.message_vi || detail.message, fallback);
     const insufficientCredit = detail.code === "insufficient_credit";
     const expiredAccess = detail.code === "expired_access";
     return {

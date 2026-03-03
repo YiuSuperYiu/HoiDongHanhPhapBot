@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -37,6 +38,17 @@ def _now_iso_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _ensure_text(value: Any, fallback: str) -> str:
+    if value is None:
+        return fallback
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return str(value)
+
+
 def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
     fallback = response.text or "Claude API lỗi."
     detail: dict[str, Any] = {"message": fallback, "opened_at": _now_iso_utc()}
@@ -48,7 +60,8 @@ def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
 
     if isinstance(payload, dict):
         error_data = payload.get("error", {}) if isinstance(payload.get("error"), dict) else {}
-        message = error_data.get("message") or payload.get("message") or fallback
+        raw_message = error_data.get("message") or payload.get("message") or fallback
+        message = _ensure_text(raw_message, fallback)
         detail["message"] = message
         detail["upstream"] = payload
 
