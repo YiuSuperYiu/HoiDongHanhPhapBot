@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoPilot Studio</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>🚀 RoPilot Studio</h1>
+    <p class="subtitle">Dùng Claude API key của bạn để chat nhanh.</p>
+
+    <section class="panel">
+      <label>Claude API Key</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-..." />
+
+      <div class="row">
+        <div>
+          <label>Model</label>
+          <input id="model" value="claude-3-5-sonnet-20241022" />
+        </div>
+        <div>
+          <label>Temperature</label>
+          <input id="temperature" type="number" min="0" max="1" step="0.1" value="0.7" />
+        </div>
+      </div>
+
+      <label>System Prompt (tuỳ chọn)</label>
+      <textarea id="systemPrompt" rows="3" placeholder="Bạn là trợ lý...\n"></textarea>
+    </section>
+
+    <section id="chatBox" class="chat"></section>
+
+    <section class="composer">
+      <textarea id="userInput" rows="4" placeholder="Nhập câu hỏi...\n"></textarea>
+      <button id="sendBtn">Gửi</button>
+    </section>
+
+    <p id="status" class="status"></p>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
