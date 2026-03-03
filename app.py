@@ -98,6 +98,14 @@ def _build_upstream_error(response: httpx.Response) -> dict[str, Any]:
             )
             detail["billing_url"] = "https://console.anthropic.com/settings/plans"
 
+
+        if "invalid bearer token" in normalized:
+            detail["code"] = "invalid_bearer_token"
+            detail["message_vi"] = (
+                "OAuth token không hợp lệ. Bạn cần Access Token thật (không phải code, không kèm #state)."
+            )
+            detail["renew_url"] = "https://claude.ai/oauth/authorize"
+
         if any(term in normalized for term in ["expired", "expire", "revoked", "deactivated"]):
             detail["code"] = "expired_access"
             detail["message_vi"] = (

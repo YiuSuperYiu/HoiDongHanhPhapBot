@@ -72,10 +72,10 @@ function parseApiError(body, fallback) {
   const detail = body?.detail;
 
   if (typeof detail === "string") {
-    return { message: detail, insufficientCredit: false, expiredAccess: false, openedAt: "" };
+    return { message: detail, insufficientCredit: false, expiredAccess: false, invalidBearerToken: false, openedAt: "" };
   }
   if (Array.isArray(detail)) {
-    return { message: parseValidationDetail(detail), insufficientCredit: false, expiredAccess: false, openedAt: "" };
+    return { message: parseValidationDetail(detail), insufficientCredit: false, expiredAccess: false, invalidBearerToken: false, openedAt: "" };
   }
   if (detail && typeof detail === "object") {
     let message = toText(detail.message_vi || detail.message, fallback);
@@ -86,6 +86,7 @@ function parseApiError(body, fallback) {
       message,
       insufficientCredit: detail.code === "insufficient_credit",
       expiredAccess: detail.code === "expired_access",
+      invalidBearerToken: detail.code === "invalid_bearer_token",
       billingUrl: detail.billing_url || "",
       renewUrl: detail.renew_url || "",
       openedAt: detail.opened_at || "",
@@ -122,6 +123,15 @@ function composeStatus(info, prefix) {
   return `${prefix}: ${info.message}${openedText}`;
 }
 
+function sanitizeOauthToken(raw) {
+  let token = (raw || "").trim();
+  token = token.replace(/\s+/g, "");
+  if (token.includes("#")) {
+    token = token.split("#")[0];
+  }
+  return token;
+}
+
 function toggleAuthMode() {
   const mode = $("authMode").value;
   $("oauthTokenWrap").classList.toggle("hidden", mode !== "oauth_token");
@@ -130,7 +140,7 @@ function toggleAuthMode() {
 
 function currentCredential() {
   const mode = $("authMode").value;
-  const value = mode === "oauth_token" ? $("oauthToken").value.trim() : $("apiKey").value.trim();
+  const value = mode === "oauth_token" ? sanitizeOauthToken($("oauthToken").value) : $("apiKey").value.trim();
   return { mode, value };
 }
 
@@ -162,6 +172,11 @@ async function connectClaude() {
       const info = parseApiError(body, "Không kết nối được Claude.");
       if (info.insufficientCredit) showBillingButton(true, info.billingUrl);
       if (info.expiredAccess && info.renewUrl) state.renewUrl = info.renewUrl;
+      if (info.invalidBearerToken) setStatus(`${composeStatus(info, "Lỗi kết nối")}\nGợi ý: dán Access Token sau OAuth, không dán chuỗi có #state.`);
+      if (info.invalidBearerToken) {
+        setConnection(false);
+        return;
+      }
       throw new Error(composeStatus(info, "Lỗi kết nối"));
     }
 

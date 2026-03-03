@@ -28,6 +28,8 @@ Mở `http://localhost:8000`.
 - Bấm **Mở trang OAuth Claude account** (app sẽ mở URL OAuth authorize).
 - Đăng nhập/Authorize như ảnh bạn gửi.
 - Lấy token rồi dán vào ô **OAuth Access Token**.
+- **Quan trọng**: dán đúng **Access Token**. Nếu token có dạng `...#state` thì chỉ dùng phần trước dấu `#`.
+- Không dán `code` callback thay cho access token.
 - Bấm **Kết nối Claude** rồi chat.
 
 > Có thể cấu hình URL OAuth bằng biến môi trường `CLAUDE_ACCOUNT_OAUTH_URL`.
